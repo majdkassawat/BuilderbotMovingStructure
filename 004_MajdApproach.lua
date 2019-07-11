@@ -1,8 +1,5 @@
---[[
---	for Michael's manipulator
---]]
-DEBUG = true
 
+DEBUG = true
 
 robotIF = require("RobotInterface")
 Vec3 = require("Vector3")
@@ -150,7 +147,6 @@ function move()
 			pprint("reference: ",references[1])
 			if crnt_trgt_pnt_idx <= #trajectory_plan then
 				current_point = trajectory_plan[crnt_trgt_pnt_idx]
-				-- found some markers
 				if current_point["reached"] == true then  -- point has already been reached
 					crnt_trgt_pnt_idx = crnt_trgt_pnt_idx + 1  -- move to next point
 				else  -- point has not been processed yet
@@ -158,7 +154,7 @@ function move()
 					current_point["reached"] = process_correction(
 						current_point["reference"], current_point["corrections"])
 				end
-			else  --reached the end of the trajectory
+			else 
 				print("reached end of trajectory")
 				stop()
 			end
@@ -192,7 +188,6 @@ function step()
 	--Here we should have a mixer
 	robotIF.setVelocity(current_vel_angular+current_vel_linear,current_vel_angular-current_vel_linear)
 	print("------- count",stepCount,"time",timePeriod,"------------")
-	-- theStateMachine:step{time = timePeriod}
 end
 
 function reset()
