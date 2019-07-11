@@ -1,5 +1,0 @@
-version 1.0
-	create every testing argos-lua case
-	00,001,002 should be the case for the video
-	00 worked, without nfc
-	tuning the nfc
