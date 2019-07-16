@@ -41,8 +41,7 @@ trajectory_plan[0]["corrections"] = {}
 trajectory_plan[0]["corrections"]["type"] = "single"
 trajectory_plan[0]["corrections"]["axis"] = "x"
 trajectory_plan[0]["corrections"]["error_tolerance"] = 0.002
-trajectory_plan[0]["corrections"]["controller_parameters"] = {
-    k= 0.04, bias= 0}
+trajectory_plan[0]["corrections"]["controller_parameters"] = {k= 0.04, bias= 0}
 trajectory_plan[0]["corrections"]["target"] = -0.1
 trajectory_plan[0]["corrections"]["finished"] = false
 
@@ -53,15 +52,13 @@ trajectory_plan[1]["corrections"] = {type = "parallel", finished = false, [0]={}
 trajectory_plan[1]["corrections"][0]["type"] = "single"
 trajectory_plan[1]["corrections"][0]["axis"] = "z"
 trajectory_plan[1]["corrections"][0]["error_tolerance"] = 0.002
-trajectory_plan[1]["corrections"][0]["controller_parameters"] = {
-    k= 0.05, bias= 0.01}
+trajectory_plan[1]["corrections"][0]["controller_parameters"] = {k= 0.05, bias= 0.01}
 trajectory_plan[1]["corrections"][0]["target"] = 0.15
 trajectory_plan[1]["corrections"][0]["finished"] = false
 trajectory_plan[1]["corrections"][1]["type"] = "single"
 trajectory_plan[1]["corrections"][1]["axis"] = "alpha"
 trajectory_plan[1]["corrections"][1]["error_tolerance"] = 0.002
-trajectory_plan[1]["corrections"][1]["controller_parameters"] = {
-    k= 0.002, bias= 0.0001}
+trajectory_plan[1]["corrections"][1]["controller_parameters"] = {k= 0.002, bias= 0.0001}
 trajectory_plan[1]["corrections"][1]["target"] = 0
 trajectory_plan[1]["corrections"][1]["finished"] = false
 ---------------------------------------------------------------------------------------
@@ -69,48 +66,48 @@ trajectory_plan[1]["corrections"][1]["finished"] = false
 ---------------------------------------------------------------------------------------
 function process_correction(reference_index, correction)
 	pprint("correction: ",correction)
-    if correction["type"] == "single" then
-        error = references[reference_index][correction["axis"]]-correction["target"]
+	if correction["type"] == "single" then
+		error = references[reference_index][correction["axis"]]-correction["target"]
 		k = correction["controller_parameters"]["k"]
-        bias = correction["controller_parameters"]["bias"]
+		bias = correction["controller_parameters"]["bias"]
 		error_tolerance = correction["error_tolerance"]
-        target_vel = (error) * k + (error)/math.abs(error) * bias
-        print(correction["axis"],"error:",error)
-        if correction["axis"] == "z" then
-        	--correct z
-            if(math.abs(error) > error_tolerance) then
-                current_vel_linear = target_vel
-                correction["finished"] = false
-            else 
-                current_vel_linear = 0
+		target_vel = (error) * k + (error)/math.abs(error) * bias
+		print(correction["axis"],"error:",error)
+		if correction["axis"] == "z" then
+			--correct z
+			if(math.abs(error) > error_tolerance) then
+				current_vel_linear = target_vel
+				correction["finished"] = false
+			else 
+				current_vel_linear = 0
 				correction["finished"] = true
 			end
-        elseif correction["axis"] == "alpha" then
-            -- correct roll
-            if(math.abs(error) > error_tolerance) then
-                current_vel_angular = target_vel
-                correction["finished"] = false
-            else
-                current_vel_angular = 0
+		elseif correction["axis"] == "alpha" then
+			-- correct roll
+			if(math.abs(error) > error_tolerance) then
+				current_vel_angular = target_vel
+				correction["finished"] = false
+			else
+				current_vel_angular = 0
 				correction["finished"] = true
 			end
 		elseif correction["axis"] == "x" then
-            -- correct x using rotation
-            if(math.abs(error) > error_tolerance) then
-                current_vel_angular = target_vel
-                correction["finished"] = false
-            else
-                current_vel_angular = 0
+			-- correct x using rotation
+			if(math.abs(error) > error_tolerance) then
+				current_vel_angular = target_vel
+				correction["finished"] = false
+			else
+				current_vel_angular = 0
 				correction["finished"] = true
 			end
 
 		end
 
-    elseif correction["type"] == "parallel" then
+	elseif correction["type"] == "parallel" then
 		correction["finished"] = true
-        for i = 0, #correction do 
-            process_correction(reference_index, correction[i])
-            if correction[i]["finished"] == false then
+		for i = 0, #correction do 
+			process_correction(reference_index, correction[i])
+			if correction[i]["finished"] == false then
 				correction["finished"] = false
 			end
 		end
@@ -119,7 +116,7 @@ function process_correction(reference_index, correction)
 end	
 
 function stop()
-    current_vel_linear = 0
+	current_vel_linear = 0
 	current_vel_angular = 0
 end
 function move()
@@ -151,8 +148,7 @@ function move()
 					crnt_trgt_pnt_idx = crnt_trgt_pnt_idx + 1  -- move to next point
 				else  -- point has not been processed yet
 					print("processing point and found tag,point index: " , crnt_trgt_pnt_idx)
-					current_point["reached"] = process_correction(
-						current_point["reference"], current_point["corrections"])
+					current_point["reached"] = process_correction(current_point["reference"], current_point["corrections"])
 				end
 			else 
 				print("reached end of trajectory")
@@ -162,7 +158,9 @@ function move()
 	else
 		print("processing point and no tags found")
 		stop()
-	end 
+	end
+	--Here we should have a mixer
+	robotIF.setVelocity(current_vel_angular+current_vel_linear,current_vel_angular-current_vel_linear)
 end 
 ---------------------------------------------------------------------------------------
 -- Control Loop
@@ -171,12 +169,6 @@ local timeHolding
 local stepCount
 function init()
 	reset()
-	timeHolding = robotIF.getTime()	-- in s
-	stepCount = 0
-	robotIF.enableCamera()
-	robotIF.setLiftPosition(0.05)
-
-	
 end
 
 function step()
@@ -185,12 +177,24 @@ function step()
 	local timePeriod = timeNow - timeHolding	-- unit s
 	timeHolding = timeNow
 	move()
-	--Here we should have a mixer
-	robotIF.setVelocity(current_vel_angular+current_vel_linear,current_vel_angular-current_vel_linear)
 	print("------- count",stepCount,"time",timePeriod,"------------")
 end
 
 function reset()
+	timeHolding = robotIF.getTime()	-- in s
+	stepCount = 0
+	robotIF.enableCamera()
+	robotIF.setLiftPosition(0.05)
+	current_vel_linear = 0
+	current_vel_angular = 0
+	crnt_trgt_pnt_idx = 0
+	trajectory_plan[0]["reached"] = false
+	trajectory_plan[0]["corrections"]["finished"] = false
+	trajectory_plan[1]["reached"] = false
+	trajectory_plan[1]["corrections"]["finished"] = false
+	trajectory_plan[1]["corrections"][0]["finished"] = false
+	trajectory_plan[1]["corrections"][1]["finished"] = false
+
 end
 
 function destroy()
