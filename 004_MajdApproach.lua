@@ -6,10 +6,6 @@ Vec3 = require("Vector3")
 
 pprint = require('pprint')
 
-
----------------------------------------------------------------------------------------
--- Random walk with obstacle avoidance
----------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------
 -- Trajectory definition
 ---------------------------------------------------------------------------------------
@@ -119,7 +115,7 @@ function stop()
 	current_vel_linear = 0
 	current_vel_angular = 0
 end
-function move()
+function move_to_block()
 	
 	-- print("box in sight: ",)
 	local Tags,Boxes = robotIF.getBoxes()
@@ -176,7 +172,7 @@ function step()
 	local timeNow = robotIF.getTime()
 	local timePeriod = timeNow - timeHolding	-- unit s
 	timeHolding = timeNow
-	move()
+	move_to_block()
 	print("------- count",stepCount,"time",timePeriod,"------------")
 end
 
