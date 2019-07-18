@@ -5,22 +5,22 @@
 - The list contains all obstacles seen using the range finder (and in the future the camera). 
 - For each obstacle we list the `x,y` position *in reference to the robot*. Assumiing y axis to front, x to the right and origin in the center of the robot.
 `'Obstacles list'
-{ { 
-    position = { 
-      x = -0,052788301161751,
-      y = -0,072788301161751 
-    } 
-  }, { 
-    position = { 
-      x = -0,079950359708726,
-      y = -0,01 
-    } 
-  }, { 
-    position = { 
-      x = -0,091433951733342,
-      y = 0,01 
-    } 
-  } }
+{ {
+      position = {
+          x = -0,052788301161751,
+          y = -0,072788301161751
+          }
+  }, {
+      position = {
+          x = -0,079950359708726,
+          y = -0,01
+          }
+  }, {
+      position = {
+          x = -0,091433951733342,
+          y = 0,01
+          }
+} }
 `
 - In order for us to calculate the positions, a table containing the position, orientation of the range finders in the robot was needed (The current values are estimations based on the model appearance in the simulation)
 - The script uses [luafsm] (https://github.com/allsey87/luafsm) which should be in a seperate folder, this seperate folder is in the same directory as *BuilderMovingStructure*
