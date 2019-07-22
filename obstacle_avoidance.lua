@@ -15,23 +15,23 @@ luafsm = require("luafsm.luafsm")
 -- Defining range finders positions and orientations
 ---------------------------------------------------------------------------------------
 RangeFinders = {}
-RangeFinders[1]={position = {x = 0.01,y = 0.08},angle = 90}
-RangeFinders[2]={position = {x = 0.03,y = 0.05},angle = 45}
-RangeFinders[3]={position = {x = 0.05,y = 0.01},angle = 0}
-RangeFinders[4]={position = {x = 0.05,y = -0.01},angle = 0}
-RangeFinders[5]={position = {x = 0.03,y = -0.05},angle = -45}
-RangeFinders[6]={position = {x = 0.01,y = -0.08},angle = -90}
-RangeFinders[7]={position = {x = -0.01,y = -0.08},angle = -90}
-RangeFinders[8]={position = {x = -0.03,y = -0.05},angle = -135}
-RangeFinders[9]={position = {x = -0.05,y = -0.01},angle = 180}
-RangeFinders[10]={position = {x = -0.05,y = 0.01},angle = 180}
-RangeFinders[11]={position = {x = -0.03,y = 0.05},angle = 135}
-RangeFinders[12]={position = {x = -0.01,y = 0.08},angle = 90}
+RangeFinders[1]={position = {x = 0.0640,y = -0.0175},angle = 90}
+RangeFinders[2]={position = {x = 0.0523,y = -0.0522},angle = 135}
+RangeFinders[3]={position = {x = 0.0175,y = -0.0640},angle = 180}
+RangeFinders[4]={position = {x = -0.0175,y = -0.0640},angle = 180}
+RangeFinders[5]={position = {x = -0.0522,y = -0.0523},angle = -135}
+RangeFinders[6]={position = {x = -0.0640,y = -0.0175},angle = -90}
+RangeFinders[7]={position = {x = -0.0640,y = 0.0175},angle = -90}
+RangeFinders[8]={position = {x = -0.0522,y = 0.0523},angle = -45}
+RangeFinders[9]={position = {x = -0.0175,y = 0.0640},angle = 0}
+RangeFinders[10]={position = {x = 0.0175,y = 0.0640},angle = 0}
+RangeFinders[11]={position = {x = 0.0523,y = 0.0522},angle = 45}
+RangeFinders[12]={position = {x = 0.0640,y = 0.0175},angle = 90}
 
 
 function RangeFinderToRobotConversion(distance,range_finder_id)
-	x =  RangeFinders[range_finder_id]["position"]["x"] + math.cos(math.rad(RangeFinders[range_finder_id]["angle"])) * distance
-	y =  RangeFinders[range_finder_id]["position"]["y"] + math.sin(math.rad(RangeFinders[range_finder_id]["angle"])) * distance
+	y =  RangeFinders[range_finder_id]["position"]["y"] + math.cos(math.rad(RangeFinders[range_finder_id]["angle"])) * distance
+	x =  RangeFinders[range_finder_id]["position"]["x"] + math.sin(math.rad(RangeFinders[range_finder_id]["angle"])) * distance
 	return x,y
 end
 
@@ -74,7 +74,7 @@ move_forward_state = function ()
 	--if there is an obstacle infront, return true and turn
 	if Obstacles ~= nil then
 		for key,obstacle in pairs(Obstacles) do
-			if obstacle["position"]["y"] > 0.05 then
+			if obstacle["position"]["x"] > 0.04 then
 				return true, "turn"
 			end
 		end
