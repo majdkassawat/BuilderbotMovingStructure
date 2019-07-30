@@ -68,13 +68,13 @@
       <body position="-0.0125,0.4875,0"  orientation="0,0,0" />
     </box>
 
-    <!--block id="block">
+    <block id="block">
       <body position="0,0,0" orientation="15,0,0"/>
       <controller config="block"/>
-    </block-->
+    </block>
 
     <builderbot id="builderbot" debug="false">
-      <body position="-0.250,0,0" orientation="0,0,0"/>
+      <body position="-0.260,0,0" orientation="0,0,0"/>
       <controller config="builderbot"/>
     </builderbot>
    
