@@ -8,9 +8,10 @@ Vector = require("Vector")
 pprint = require('pprint')
 -- load module
 
-package.path = package.path .. ";../luafsm/luafsm.lua"
-luafsm = require("luafsm.luafsm")
-
+-- package.path = package.path .. ";../luafsm/luafsm.lua"
+-- luafsm = require("luafsm.luafsm")
+-- package.path = package.path .. ";../luabt/luabt.lua"
+luabt = require("luabt.luabt")
 
 ---------------------------------------------------------------------------------------
 -- Defining range finders positions and orientations
@@ -123,31 +124,67 @@ end
 -- Obstacle avoidance
 ---------------------------------------------------------------------------------------
 -- define the state machine and its functions
-move_forward_state = function ()
-	--if there is an obstacle infront, return true and turn
-	if Obstacles ~= nil then
-		for key,obstacle in pairs(Obstacles) do
-			if obstacle["position"]["x"] > 0.04 then
-				return true, "turn"
-			end
-		end
-		-- print("move forward")
-		move(0.06,0)
-	end
-end
-turn_state = function ()
-	-- print("turning")
-	move(0.03,0.01)
-	return true,"move_forward"
-end
-obstacle_avoidance_states = {
-	entry = "move_forward",
-	substates = {
-	  move_forward	= move_forward_state,
-	  turn = turn_state,
+-- move_forward_state = function ()
+-- 	--if there is an obstacle infront, return true and turn
+-- 	if Obstacles ~= nil then
+-- 		for key,obstacle in pairs(Obstacles) do
+-- 			if obstacle["position"]["x"] > 0.04 then
+-- 				return true, "turn"
+-- 			end
+-- 		end
+-- 		-- print("move forward")
+-- 		move(0.06,0)
+-- 	end
+-- end
+-- turn_state = function ()
+-- 	-- print("turning")
+-- 	move(0.03,0.01)
+-- 	return true,"move_forward"
+-- end
+-- obstacle_avoidance_states = {
+-- 	entry = "move_forward",
+-- 	substates = {
+-- 	  move_forward	= move_forward_state,
+-- 	  turn = turn_state,
+-- 	}
+--   }
+
+-- define obstacle avoidance behaviour tree
+obstacle_avoidance_node = {
+	type = "selector",
+	children = {
+
+		{	-- This is the obstacle avoidance sequence
+			type = "sequence",
+			children = {
+				-- condition leaf, is there an obstacle?
+				function()
+					if Obstacles ~= nil then
+						for key,obstacle in pairs(Obstacles) do
+							if obstacle["position"]["x"] > 0.04 then
+								return false, true
+							end
+						end
+						return false, false
+					end
+				end,
+				-- action leaf, turn away
+				function()
+					print("turning")
+					move(0.03,0.01)
+					return true
+				end,
+			}
+	   },
+	   	-- action leaf, move forward and print
+		function()
+			print("Moving forward")
+			move(0.06,0)
+			return true -- (Running)
+		end,
+
 	}
-  }
-  
+ }
 ---------------------------------------------------------------------------------------
 -- Control Loop
 ---------------------------------------------------------------------------------------
@@ -155,8 +192,13 @@ local timeHolding
 local stepCount
 function init()
 	reset()	
-	-- instantiate the state machine
-	obstacle_avoidance_fsm = luafsm.create(obstacle_avoidance_states)
+	-- initiate the state machine
+	-- obstacle_avoidance_fsm = luafsm.create(obstacle_avoidance_states)
+
+	-- instantiate a behavior tree
+	obstacle_avoidance_bt = luabt.create(obstacle_avoidance_node)
+
+
 end
 
 function step()
@@ -164,8 +206,11 @@ function step()
 	local timeNow = robotIF.getTime()
 	local timePeriod = timeNow - timeHolding	-- unit s
 	timeHolding = timeNow
-	if ProcessObstacles() == true then
-		obstacle_avoidance_fsm()
+	if ProcessObstacles() == true then -- if updating the list of obstacles was successful
+		-- obstacle_avoidance_fsm()
+
+		-- tick the behavior tree until it has finished (running == false)
+		obstacle_avoidance_bt()
 	end
 	
 end
