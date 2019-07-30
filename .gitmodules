@@ -1,3 +1,6 @@
 [submodule "luabt"]
 	path = luabt
 	url = https://github.com/allsey87/luabt.git
+[submodule "luafsm"]
+	path = luafsm
+	url = https://github.com/allsey87/luafsm.git
