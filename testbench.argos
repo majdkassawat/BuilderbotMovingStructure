@@ -34,7 +34,7 @@
         <builderbot_lift_system implementation="default" />
         <builderbot_nfc implementation="default" show_rays="true" />
       </sensors>
-      <params script="obstacle_avoidance.lua" />
+      <params script="approach_cube.lua" />
     </lua_controller>
 
     <lua_controller id="block">
@@ -68,8 +68,9 @@
       <body position="-0.0125,0.4875,0"  orientation="0,0,0" />
     </box>
 
+
     <block id="block">
-      <body position="0,0,0" orientation="15,0,0"/>
+      <body position="0.3,0,0" orientation="0,0,0"/>
       <controller config="block"/>
     </block>
 

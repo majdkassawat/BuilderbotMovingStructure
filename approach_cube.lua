@@ -6,11 +6,6 @@ Vec3 = require("Vector3")
 Matrix = require("Matrix")
 Vector = require("Vector")
 pprint = require('pprint')
--- load module
-
--- package.path = package.path .. ";../luafsm/luafsm.lua"
--- luafsm = require("luafsm.luafsm")
--- package.path = package.path .. ";../luabt/luabt.lua"
 luabt = require("luabt.luabt")
 
 ---------------------------------------------------------------------------------------
@@ -71,15 +66,31 @@ function Camera2RobotConversion(loc)
 	
 	return locVec3
 end
+
+---------------------------------------------------------------------------------------
+-- Process Blocks
+---------------------------------------------------------------------------------------
+--	We are asinging type = "target" to all of the blocks, I did not know how to read the LEDs
+Blocks = {}
+function ProcessBlocks()
+	Blocks = {}
+	local Tags,Boxes = robotIF.getBoxes()
+	for i = 1,Boxes.n do 
+		block_position_vector_camera = Vec3:create( Boxes[i].translation.x, Boxes[i].translation.y, Boxes[i].translation.z)
+		block_position_vector_robot =  Camera2RobotConversion(block_position_vector_camera)
+		block_type = "target"
+		block_id = Boxes[i].label
+		table.insert(Blocks,{position = block_position_vector_robot,id = block_id,type = block_type})
+	end
+end
 ---------------------------------------------------------------------------------------
 -- Process Obstacles
 ---------------------------------------------------------------------------------------
 Obstacles = {}
 
 function ProcessObstacles()
-	
 		
-	if robotIF.getLiftPosition() > 0.05 then 
+	if robotIF.getLiftPosition() > 0.05 then --	checks if the gripper is up
 		-- Loop over range finders and register obstacles and there positions relative to the robot. 
 		-- The position is in x,y,z. x is pointing to the front of the robot, y to the left and z up.
 		Obstacles = {}
@@ -94,16 +105,14 @@ function ProcessObstacles()
 	else
 		return false
 	end
-		
-	local Tags,Boxes = robotIF.getBoxes()
-	for i = 1,Boxes.n do 
-		obstacle_position_vector_camera = Vec3:create( Boxes[i].translation.x, Boxes[i].translation.y, Boxes[i].translation.z)
-		obstacle_position_vector_robot =  Camera2RobotConversion(obstacle_position_vector_camera)
-		obstacle_id = Boxes[i].label
-		table.insert(Obstacles,{position = obstacle_position_vector_robot,id = obstacle_id})
+	--	Consider non-target blocks as obstacles
+	for key,block in pairs(Blocks) do 
+		if block["type"] ~= "target" then
+			table.insert(Obstacles,{position = block["position"],id = block["id"]})
+		end
 	end
 
-	if #Obstacles == 0 then print("No obstacles detected") else pprint("Obstacles list",Obstacles) end
+	-- if #Obstacles == 0 then print("No obstacles detected") else pprint("Obstacles list",Obstacles) end
 
 	return true
 	
@@ -149,11 +158,33 @@ end
 -- 	}
 --   }
 
--- define obstacle avoidance behaviour tree
-obstacle_avoidance_node = {
+
+
+move_forward = function()
+	-- Move forward function
+	move(0.02,0)
+	return true
+end
+turn_left = function()
+	-- Turn left function
+	move(0.01,1)
+	return true
+end
+turn_right = function()
+	-- Turn right function
+	move(0.01,-1)
+	return true
+end
+stop = function()
+	move(0,1)
+	return true
+end
+
+
+-- Define obstacle avoidance behaviour tree
+obstacle_avoidance = {
 	type = "selector",
 	children = {
-
 		{	-- This is the obstacle avoidance sequence
 			type = "sequence",
 			children = {
@@ -162,29 +193,155 @@ obstacle_avoidance_node = {
 					if Obstacles ~= nil then
 						for key,obstacle in pairs(Obstacles) do
 							if obstacle["position"]["x"] > 0.04 then
+								print("avoiding obstacles")
 								return false, true
 							end
 						end
 						return false, false
+					else 
+						return false, false
 					end
 				end,
 				-- action leaf, turn away
-				function()
-					print("turning")
-					move(0.03,0.01)
-					return true
-				end,
+				turn_left,
 			}
 	   },
-	   	-- action leaf, move forward and print
-		function()
-			print("Moving forward")
-			move(0.06,0)
-			return true -- (Running)
-		end,
+	   	-- action leaf, move forward
+		-- move_forward
 
 	}
  }
+
+---------------------------------------------------------------------------------------
+-- Approach Cube 
+---------------------------------------------------------------------------------------
+-- In this tree we are supposed to use blocks rather than obstacles list (I will change it later)
+target_cube_detected = function()
+	if Blocks ~= nil then
+		for key,block in pairs(Blocks) do 
+			if block["type"] == "target" then
+				print("detected target")
+				return false, true
+			end
+		end
+		return false, false
+	else
+		return false, false
+	end
+end
+check_approached_cube = function()
+	--	This only checks if the robot has approached the cube but still seeing the cube (yet not ready for picking)
+	-- print("checking reached")
+	target_distance = 0.22
+	error_tolerance = 0.01
+	-- pprint(Blocks)
+	for key,block in pairs(Blocks) do 
+		actual_distance = block["position"]["x"]
+		-- print(actual_distance)
+		if block["type"] == "target" then
+			error = target_distance - actual_distance
+			if math.abs(error) < error_tolerance then
+				print("reached target")
+				return false, true
+			else return false, false
+			end
+		else print("lost target")
+		end
+	end
+end
+
+check_current_approach_angle_bigger = function()
+	-- Checks if the current angle is bigger than the required calculated approach angle
+	-- For now the approach angle is set to zero at all times since we do not have a correct cube orientation
+	-- print("check bigger")
+	target_angle = 0
+	error_tolerance = 0.03
+	for key,block in pairs(Blocks) do 
+		actual_angle = math.atan(block["position"]["y"]/block["position"]["x"]) 
+		-- print(actual_angle)
+		if block["type"] == "target" then
+			error = target_angle - actual_angle
+			if (error < 0) and (math.abs(error) >  error_tolerance)  then
+				return false, true
+			else return false, false
+			end
+		else print("lost target")
+		end
+	end
+end
+check_current_approach_angle_smaller = function()
+	-- Checks if the current angle is smaller than the required calculated approach angle
+	-- For now the approach angle is set to zero at all times since we do not have a correct cube orientation
+	-- print("check smaller")
+	target_angle = 0
+	error_tolerance = 0.01
+	for key,block in pairs(Blocks) do 
+		actual_angle = math.atan(block["position"]["y"]/block["position"]["x"]) 
+		-- print(actual_angle)
+		if block["type"] == "target" then
+			error = target_angle - actual_angle
+			if (error > 0) and (math.abs(error) >  error_tolerance)  then
+				return false, true
+			else return false, false
+			end
+		else print("lost target")
+		end
+	end
+end
+
+
+approach = {	
+	type = "selector",
+	children = {
+		check_approached_cube,
+		{
+			type = "selector",
+			children = {
+				{
+					type = "selector",
+					children = {
+						{
+							type = "sequence",
+							children = {
+								check_current_approach_angle_bigger,
+								turn_right
+							}
+						},
+						{
+							type = "sequence",
+							children = {
+								check_current_approach_angle_smaller,
+								turn_left
+							}
+						}
+					}
+				},
+				move_forward
+			}
+		}
+	}
+}
+
+detect_and_approach_target = {
+	type = "sequence",
+	children = {
+		target_cube_detected,
+		approach,
+		stop,
+		--pickup
+	}
+}
+
+main_node = { 
+	type = "selector",
+	children = {
+		obstacle_avoidance,
+		detect_and_approach_target,
+		move_forward,
+	}
+}
+
+
 ---------------------------------------------------------------------------------------
 -- Control Loop
 ---------------------------------------------------------------------------------------
@@ -196,7 +353,8 @@ function init()
 	-- obstacle_avoidance_fsm = luafsm.create(obstacle_avoidance_states)
 
 	-- instantiate a behavior tree
-	obstacle_avoidance_bt = luabt.create(obstacle_avoidance_node)
+	--obstacle_avoidance_bt = luabt.create(obstacle_avoidance_node)
+	main_bt = luabt.create(main_node)
 
 
 end
@@ -206,11 +364,13 @@ function step()
 	local timeNow = robotIF.getTime()
 	local timePeriod = timeNow - timeHolding	-- unit s
 	timeHolding = timeNow
+	ProcessBlocks()
 	if ProcessObstacles() == true then -- if updating the list of obstacles was successful
 		-- obstacle_avoidance_fsm()
 
 		-- tick the behavior tree until it has finished (running == false)
-		obstacle_avoidance_bt()
+		-- obstacle_avoidance_bt()
+		main_bt()
 	end
 	
 end
