@@ -177,7 +177,7 @@ turn_right = function()
 end
 stop = function()
 	move(0,1)
-	return true
+	return false,true
 end
 
 
@@ -229,18 +229,18 @@ target_cube_detected = function()
 		return false, false
 	end
 end
-check_approached_cube = function()
+check_approached_cube = function(target_distance,error_tolerance)
 	--	This only checks if the robot has approached the cube but still seeing the cube (yet not ready for picking)
 	-- print("checking reached")
-	target_distance = 0.22
-	error_tolerance = 0.01
+	-- print(target_distance)
 	-- pprint(Blocks)
+	-- target_distance = 0.22
+	-- error_tolerance = 0.01
 	for key,block in pairs(Blocks) do 
 		actual_distance = block["position"]["x"]
-		-- print(actual_distance)
+		print(actual_distance)
 		if block["type"] == "target" then
-			error = target_distance - actual_distance
-			if math.abs(error) < error_tolerance then
+			if actual_distance < target_distance + error_tolerance then
 				print("reached target")
 				return false, true
 			else return false, false
@@ -288,37 +288,97 @@ check_current_approach_angle_smaller = function()
 		end
 	end
 end
-
-
-approach = {	
+lower_camera = function()
+	-- This function lowers the camera to get a better view of the cube, so that we do not lose the cube while approching
+	lower_position = 0.002
+	robotIF.setLiftPosition(lower_position)
+	-- print(robotIF.getLiftPosition())
+	if robotIF.getLiftPosition() < lower_position + 0.001  then 
+		return false, true
+	else return true
+	end
+end
+approach = {
 	type = "selector",
 	children = {
-		check_approached_cube,
 		{
 			type = "selector",
 			children = {
 				{
-					type = "selector",
+					type = "sequence",
 					children = {
-						{
-							type = "sequence",
-							children = {
-								check_current_approach_angle_bigger,
-								turn_right
-							}
-						},
-						{
-							type = "sequence",
-							children = {
-								check_current_approach_angle_smaller,
-								turn_left
-							}
-						}
+						check_current_approach_angle_bigger,
+						turn_right
 					}
 				},
-				move_forward
+				{
+					type = "sequence",
+					children = {
+						check_current_approach_angle_smaller,
+						turn_left
+					}
+				}
 			}
-		}
+		},
+		move_forward
+	}
+}
+check_far_approached_cube = function()
+	-- print("checking far approach")
+	return check_approached_cube(0.22, 0.01)
+end
+check_near_approached_cube = function()
+	print("checking near approach")
+	return check_approached_cube(0.14, 0.01)
+end
+check_touched = function()
+	-- print("left", robotIF.getRFReading("left"))
+	-- print("right", robotIF.getRFReading("right"))
+	left_sensor = robotIF.getRFReading("left")
+	right_sensor = robotIF.getRFReading("right")
+	-- print("underneath", robotIF.getRFReading("underneath"))
+	-- print("front", robotIF.getRFReading("front"))
+	if left_sensor < 0.005 and left_sensor > 0 and right_sensor < 0.005 and right_sensor > 0 then
+		return false, true
+	else return false, false
+	end
+end
+grip = function()
+	print("gripping")
+	robotIF.pullMagnet()
+	return false, true
+end
+liftup = function()
+	higher_position = 0.22
+	robotIF.setLiftPosition(higher_position)
+	-- print(robotIF.getLiftPosition())
+	if robotIF.getLiftPosition() > higher_position - 0.001 then 
+		return false, true
+	else return true
+	end
+end
+far_approach = {	
+	type = "selector",
+	children = {
+		check_far_approached_cube,
+		approach
+	}
+}
+near_approach = {
+	type = "selector",
+	children = {
+		check_near_approached_cube,
+		approach
+	}
+}
+
+touch_and_lift = {
+	type = "sequence",
+	children = {
+		check_touched,
+		stop,
+		grip,
+		liftup
 	}
 }
 
@@ -326,9 +386,10 @@ detect_and_approach_target = {
 	type = "sequence",
 	children = {
 		target_cube_detected,
-		approach,
+		far_approach,
 		stop,
-		--pickup
+		lower_camera,
+		near_approach
 	}
 }
 
@@ -337,6 +398,7 @@ main_node = {
 	children = {
 		obstacle_avoidance,
 		detect_and_approach_target,
+		touch_and_lift,
 		move_forward,
 	}
 }
@@ -355,7 +417,7 @@ function init()
 	-- instantiate a behavior tree
 	--obstacle_avoidance_bt = luabt.create(obstacle_avoidance_node)
 	main_bt = luabt.create(main_node)
-
+	
 
 end
 
@@ -365,21 +427,27 @@ function step()
 	local timePeriod = timeNow - timeHolding	-- unit s
 	timeHolding = timeNow
 	ProcessBlocks()
-	if ProcessObstacles() == true then -- if updating the list of obstacles was successful
-		-- obstacle_avoidance_fsm()
+	main_bt()
+	ProcessObstacles()
+	-- check_touched()
+	-- if  == true then -- if updating the list of obstacles was successful
+	-- 	-- obstacle_avoidance_fsm()
 
-		-- tick the behavior tree until it has finished (running == false)
-		-- obstacle_avoidance_bt()
-		main_bt()
-	end
+	-- 	-- tick the behavior tree until it has finished (running == false)
+	-- 	-- obstacle_avoidance_bt()
+		
+	-- end
+	-- local Tags,Boxes = robotIF.getBoxes()
 	
+	-- pprint(robot.camera_system.detect_led())
 end
 
 function reset()
 	timeHolding = robotIF.getTime()	-- in s
 	stepCount = 0
 	robotIF.enableCamera()
-	robotIF.setLiftPosition(0.15)
+	robotIF.setLiftPosition(0.2)
+	robotIF.chargeMagnet()
 
 end
 
