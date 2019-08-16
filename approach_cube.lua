@@ -232,13 +232,8 @@ end
 check_approached_cube = function(target_distance,error_tolerance)
 	--	This only checks if the robot has approached the cube but still seeing the cube (yet not ready for picking)
 	-- print("checking reached")
-	-- print(target_distance)
-	-- pprint(Blocks)
-	-- target_distance = 0.22
-	-- error_tolerance = 0.01
 	for key,block in pairs(Blocks) do 
 		actual_distance = block["position"]["x"]
-		print(actual_distance)
 		if block["type"] == "target" then
 			if actual_distance < target_distance + error_tolerance then
 				print("reached target")
@@ -292,7 +287,6 @@ lower_camera = function()
 	-- This function lowers the camera to get a better view of the cube, so that we do not lose the cube while approching
 	lower_position = 0.002
 	robotIF.setLiftPosition(lower_position)
-	-- print(robotIF.getLiftPosition())
 	if robotIF.getLiftPosition() < lower_position + 0.001  then 
 		return false, true
 	else return true
@@ -324,20 +318,16 @@ approach = {
 	}
 }
 check_far_approached_cube = function()
-	-- print("checking far approach")
+	print("far approach")
 	return check_approached_cube(0.22, 0.01)
 end
 check_near_approached_cube = function()
-	print("checking near approach")
+	print("near approach")
 	return check_approached_cube(0.14, 0.01)
 end
 check_touched = function()
-	-- print("left", robotIF.getRFReading("left"))
-	-- print("right", robotIF.getRFReading("right"))
 	left_sensor = robotIF.getRFReading("left")
 	right_sensor = robotIF.getRFReading("right")
-	-- print("underneath", robotIF.getRFReading("underneath"))
-	-- print("front", robotIF.getRFReading("front"))
 	if left_sensor < 0.005 and left_sensor > 0 and right_sensor < 0.005 and right_sensor > 0 then
 		return false, true
 	else return false, false
@@ -351,7 +341,6 @@ end
 liftup = function()
 	higher_position = 0.22
 	robotIF.setLiftPosition(higher_position)
-	-- print(robotIF.getLiftPosition())
 	if robotIF.getLiftPosition() > higher_position - 0.001 then 
 		return false, true
 	else return true
@@ -415,7 +404,6 @@ function init()
 	-- obstacle_avoidance_fsm = luafsm.create(obstacle_avoidance_states)
 
 	-- instantiate a behavior tree
-	--obstacle_avoidance_bt = luabt.create(obstacle_avoidance_node)
 	main_bt = luabt.create(main_node)
 	
 
@@ -429,17 +417,6 @@ function step()
 	ProcessBlocks()
 	main_bt()
 	ProcessObstacles()
-	-- check_touched()
-	-- if  == true then -- if updating the list of obstacles was successful
-	-- 	-- obstacle_avoidance_fsm()
-
-	-- 	-- tick the behavior tree until it has finished (running == false)
-	-- 	-- obstacle_avoidance_bt()
-		
-	-- end
-	-- local Tags,Boxes = robotIF.getBoxes()
-	
-	-- pprint(robot.camera_system.detect_led())
 end
 
 function reset()
